@@ -43,35 +43,6 @@ public class UndoManagerImplTest {
     }
 
     @Test
-    public void testUndoWithFullBuffer() {
-        // prepare
-        var testString1 = "TEST1";
-        var testString2 = "TEST2";
-        var testString3 = "TEST3";
-        var undoManager = undoFactory.createUndoManager(this.document, 2);
-        var change1 = this.changeFactory.createInsertion(0, testString1, 0, 4);
-        var change2 = this.changeFactory.createInsertion(0, testString2, 0, 4);
-        var change3 = this.changeFactory.createInsertion(0, testString3, 0, 4);
-        undoManager.registerChange(change1);
-        undoManager.registerChange(change2);
-        undoManager.registerChange(change3);
-        this.document.insert(0, testString1);
-        this.document.insert(0, testString2);
-        this.document.insert(0, testString3);
-        System.out.println(this.document.toString());
-        // test
-        undoManager.undo();
-        System.out.println(this.document.toString());
-
-        undoManager.undo();
-        System.out.println(this.document.toString());
-
-        // assert
-        assertEquals(this.document.toString(), testString1);
-    }
-
-
-    @Test
     public void testUndoAndRedo() {
         // prepare
         var testString = "TEST";
@@ -86,7 +57,6 @@ public class UndoManagerImplTest {
         // assert
         assertEquals(this.document.toString(), testString);
     }
-
 
     @Test
     public void testUndoWithMultipleInsertions() {
@@ -138,6 +108,30 @@ public class UndoManagerImplTest {
         assertEquals(this.document.toString(), testString + testString);
     }
 
+    @Test
+    public void testUndoFullBuffer() {
+        // prepare
+        var testString1 = "TEST1";
+        var testString2 = "TEST2";
+        var testString3 = "TEST3";
+        var undoManager = undoFactory.createUndoManager(this.document, 2);
+        var change1 = this.changeFactory.createInsertion(0, testString1, 0, 4);
+        var change2 = this.changeFactory.createInsertion(testString1.length(), testString2, 0, 4);
+        var change3 = this.changeFactory.createInsertion(testString1.length() + testString2.length(), testString3, 0, 4);
+        undoManager.registerChange(change1);
+        undoManager.registerChange(change2);
+        undoManager.registerChange(change3);
+        this.document.insert(0, testString1);
+        this.document.insert(testString1.length(), testString2);
+        this.document.insert(testString1.length() + testString2.length(), testString3);
+
+        // test
+        assertEquals(this.document.toString(), testString1 + testString2 + testString3);
+        undoManager.undo();
+        assertEquals(this.document.toString(), testString1 + " ".repeat(testString2.length()) + testString3);
+        undoManager.undo();
+        assertEquals(this.document.toString(), testString1);
+    }
 
     @Test(expected = IllegalStateException.class)
     public void testIllegalRedo() {
@@ -159,5 +153,22 @@ public class UndoManagerImplTest {
         undoManager.undo();
     }
 
-}
+    @Test(expected = IllegalStateException.class)
+    public void testUndoReplacedString() {
+        // prepare
+        var testString1 = "TEST1";
+        var testString2 = "TEST2";
+        var undoManager = undoFactory.createUndoManager(this.document, BUFFER_SIZE);
+        var change1 = this.changeFactory.createInsertion(0, testString1, 0, 4);
+        var change2 = this.changeFactory.createInsertion(0, testString2, 0, 4);
+        undoManager.registerChange(change1);
+        undoManager.registerChange(change2);
+        this.document.insert(0, testString1);
+        this.document.insert(0, testString2);
 
+        // test
+        undoManager.undo();
+        undoManager.undo();
+    }
+
+}

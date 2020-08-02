@@ -18,12 +18,17 @@ public class StringDocument implements Document {
     /**
      * Buffer where document is stored.
      */
-    private final StringBuffer text;
+    private final char[] text;
 
     /**
      * Current dot position at the document.
      */
     private int currentDot;
+
+    /**
+     * Points to end of document.
+     */
+    private int endCursor;
 
     /**
      * Default constructor.
@@ -38,7 +43,11 @@ public class StringDocument implements Document {
      * @param documentSize Size of the created document
      */
     public StringDocument(int documentSize) {
-        this.text = new StringBuffer(documentSize);
+        this.text = new char[documentSize];
+        for (int i = 0; i < documentSize; i++) {
+            this.text[i] = ' ';
+        }
+        endCursor = 0;
     }
 
     /**
@@ -51,13 +60,20 @@ public class StringDocument implements Document {
      */
     @Override
     public void delete(int pos, String s) {
-        if(pos < 0 || pos + s.length() > this.text.capacity()) {
+        if(pos < 0 || pos + s.length() > this.text.length) {
             throw new IllegalStateException();
         }
-        if(!this.text.substring(pos, pos + s.length()).equals(s)) {
-            throw new IllegalStateException();
+        for (int i = pos, j = 0; i < pos + s.length(); i++, j++) {
+            if(this.text[i] != s.charAt(j)) {
+                throw new IllegalStateException();
+            }
         }
-        this.text.delete(pos, pos + s.length());
+        for(int i = pos; i < pos + s.length(); i++) {
+            this.text[i] = ' ';
+        }
+        if(pos + s.length() > endCursor) {
+            endCursor = pos;
+        }
     }
 
     /**
@@ -73,13 +89,13 @@ public class StringDocument implements Document {
         if(pos < 0 || pos + s.length() > DEFAULT_TEXT_SIZE) {
             throw new IllegalStateException();
         }
-        // Process case when starting position is larger.
-        if(pos > text.length()) {
-            s = this.padLeft(s, pos - this.text.length() + s.length());
-            pos -= pos - this.text.length();
+        for(int i = pos, j = 0; i < pos + s.length(); i++, j++) {
+            this.text[i] = s.charAt(j);
         }
-        this.text.replace(pos, pos + s.length(), s);
         this.currentDot = pos + s.length();
+        if(this.currentDot > endCursor) {
+            endCursor = this.currentDot;
+        }
     }
 
     /**
@@ -91,7 +107,7 @@ public class StringDocument implements Document {
      */
     @Override
     public void setDot(int pos) {
-        if(pos > this.text.length()) {
+        if(pos > this.text.length || pos > endCursor) {
             throw new IllegalStateException();
         }
         this.currentDot = pos;
@@ -113,18 +129,7 @@ public class StringDocument implements Document {
      */
     @Override
     public String toString() {
-        return this.text.toString();
-    }
-
-    /**
-     * Pad the given string with empty spaces.
-     *
-     * @param inputString String to be padded
-     * @param length Size up to which string should be padded.
-     * @return Padded string
-     */
-    private String padLeft(String inputString, int length) {
-        return String.format("%1$" + length + "s", inputString);
+        return String.valueOf(this.text).stripTrailing();
     }
 
 }
